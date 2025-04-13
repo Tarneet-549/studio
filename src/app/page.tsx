@@ -1,4 +1,3 @@
-
 'use client';
 
 import {useState} from 'react';
@@ -6,14 +5,24 @@ import {Textarea} from '@/components/ui/textarea';
 import {Button} from '@/components/ui/button';
 import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card';
 import {Separator} from '@/components/ui/separator';
+import {deobfuscateCode} from '@/ai/flows/deobfuscate-code';
 
 export default function Home() {
   const [obfuscatedCode, setObfuscatedCode] = useState('');
   const [deobfuscatedCode, setDeobfuscatedCode] = useState('');
+  const [isDeobfuscating, setIsDeobfuscating] = useState(false);
 
   const handleDeobfuscate = async () => {
-    // Placeholder for deobfuscation logic. Replace with actual GenAI call.
-    setDeobfuscatedCode('// Deobfuscated code will appear here');
+    setIsDeobfuscating(true);
+    try {
+      const result = await deobfuscateCode({obfuscatedCode});
+      setDeobfuscatedCode(result.deobfuscatedCode);
+    } catch (error) {
+      console.error('Error during deobfuscation:', error);
+      setDeobfuscatedCode('// An error occurred during deobfuscation.');
+    } finally {
+      setIsDeobfuscating(false);
+    }
   };
 
   return (
@@ -29,8 +38,12 @@ export default function Home() {
               value={obfuscatedCode}
               onChange={e => setObfuscatedCode(e.target.value)}
             />
-            <Button className="mt-4 w-full" onClick={handleDeobfuscate}>
-              Deobfuscate
+            <Button
+              className="mt-4 w-full"
+              onClick={handleDeobfuscate}
+              disabled={isDeobfuscating}
+            >
+              {isDeobfuscating ? 'Deobfuscating...' : 'Deobfuscate'}
             </Button>
           </CardContent>
         </Card>
@@ -53,4 +66,3 @@ export default function Home() {
     </div>
   );
 }
-
