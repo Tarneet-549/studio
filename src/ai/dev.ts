@@ -1,1 +1,2 @@
-// Flows will be imported for their side effects in this file.
+import '@/ai/flows/explain-code-context.ts';
+import '@/ai/flows/suggest-deobfuscation.ts';
