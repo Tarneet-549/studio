@@ -10,6 +10,7 @@ import {Sun, Moon, MessageSquare, ArrowDown, RotateCcw} from 'lucide-react'; // 
 import {useTheme} from 'next-themes'; // Import useTheme hook
 import {Accordion, AccordionContent, AccordionItem, AccordionTrigger} from "@/components/ui/accordion";
 import {toast} from "@/hooks/use-toast";
+import {explainCodeContext} from '@/ai/flows/explain-code-context';
 
 // Placeholder chart data and type
 const initialChartData = [
@@ -57,6 +58,15 @@ const decrypt = (encrypted: string): string => {
     console.error("Decryption error:", error);
     return encrypted; // Return original text on error
   }
+};
+
+// Function to calculate cyclomatic complexity (basic implementation)
+const calculateComplexity = (code: string): number => {
+  const lines = code.split('\n');
+  const conditionalStatements = lines.filter(line =>
+      line.includes('if') || line.includes('else') || line.includes('for') || line.includes('while')
+  ).length;
+  return conditionalStatements + 1;
 };
 
 export default function Home() {
@@ -145,12 +155,37 @@ export default function Home() {
     setTheme(theme === 'light' ? 'dark' : 'light');
   };
 
-  const handleSendMessage = (message: string) => {
+  const handleSendMessage = async (message: string) => {
     setChatHistory(prev => [...prev, `User: ${message}`]);
-    // Basic AI response simulation
-    setTimeout(() => {
-      setChatHistory(prev => [...prev, `AI: Thanks for your message! We're still under development.`]);
-    }, 500);
+
+    try {
+      const geminiApiKey = 'AIzaSyAGmVxghwQ4tQogZwf87pKfJJqPSf6VFR4';
+      const geminiApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key=${geminiApiKey}`;
+
+      const response = await fetch(geminiApiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{ text: message }],
+          }],
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.candidates && data.candidates.length > 0 && data.candidates[0].content && data.candidates[0].content.parts) {
+        const aiResponse = data.candidates[0].content.parts[0].text;
+        setChatHistory(prev => [...prev, `AI: ${aiResponse}`]);
+      } else {
+        setChatHistory(prev => [...prev, `AI: Sorry, I couldn't process your request.`]);
+      }
+    } catch (error) {
+      console.error("Gemini API error:", error);
+      setChatHistory(prev => [...prev, `AI: An error occurred while processing your request.`]);
+    }
   };
 
   const downloadCode = (code: string, filename: string) => {
@@ -183,6 +218,9 @@ export default function Home() {
       });
     }
   };
+
+  const obfuscatedCodeComplexity = calculateComplexity(obfuscatedCode);
+  const deobfuscatedCodeComplexity = calculateComplexity(deobfuscatedCode);
 
   return (
     <div className="flex flex-col h-screen w-full transition-colors">
@@ -266,7 +304,7 @@ export default function Home() {
               <input
                 type="text"
                 placeholder="Ask me anything..."
-                className="flex-1 border rounded-l-md px-2 py-1 text-foreground"
+                className="flex-1 border rounded-l-md px-2 py-1 text-foreground ai-input"
                 onKeyDown={e => {
                   if (e.key === 'Enter') {
                     handleSendMessage(e.target.value);
@@ -307,8 +345,8 @@ export default function Home() {
                 <AccordionTrigger>Complexity Analysis</AccordionTrigger>
                 <AccordionContent>
                   <div>
-                    {/* Placeholder for complexity analysis */}
-                    <p>Complexity metrics will appear here.</p>
+                    <p>Obfuscated Code Complexity: {obfuscatedCodeComplexity}</p>
+                    <p>Deobfuscated Code Complexity: {deobfuscatedCodeComplexity}</p>
                   </div>
                 </AccordionContent>
               </AccordionItem>
